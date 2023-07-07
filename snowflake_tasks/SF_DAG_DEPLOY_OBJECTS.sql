@@ -6,7 +6,7 @@
 -- 1. Create tasks schema
 CREATE OR REPLACE SCHEMA TASKER;
 
--- 2. Create work table to storing and parsing JSON mapping files
+-- 2. Create work table to store and parse JSON mapping files
 CREATE OR REPLACE TABLE TASKER.TASK_MAPPING (ID NUMBER(38,0) autoincrement, JSON_MAPPING VARIANT );
 
 -- 3. Create sequence object to generate the load cycle id
