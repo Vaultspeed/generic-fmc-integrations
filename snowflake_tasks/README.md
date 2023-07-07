@@ -26,7 +26,7 @@ NOTE: This code package does not yet handle Object-specific loading window. You 
         warehousename = {your_warehouse}
         dbname = {your_db}
 
- - Open the snowsql_deploy.sh shell script, and the change the variable values to reflect the your environments, an save it:
+ - Open the snowsql_deploy.sh shell script, and the change the variable values to reflect your environments, and save it:
 
         snowsql_conn= {your_connection_name}
         snowflake_warehouse= {your_warehouse}
@@ -34,7 +34,7 @@ NOTE: This code package does not yet handle Object-specific loading window. You 
         default_schedule= "{your_default_schedule}"
         agent_folder= {your_agent_folder_path}
 
-- Run the script SF_DAG_DEPLOY_OBJECTS.sql in your target Snowflake database.
+ - Run the script SF_DAG_DEPLOY_OBJECTS.sql in your target Snowflake database.
 
  - In VaultSpeed, set up a Data Vault with FMC_TYPE = Generic and ETL Generation type = Snowflake SQL. Make sure you have generated all the FMC flows created. Be sure to use a valid schedule interval provided in the Snowflake Tasks documentation. Do not enclose the schedule interval value in double quotes (") or single quotes (').
  

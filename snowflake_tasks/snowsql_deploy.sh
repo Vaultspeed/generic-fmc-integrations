@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-##################################################
-## Variables - change these for you environment ##
-##################################################
+###################################################
+## Variables - change these for your environment ##
+###################################################
 
 snowsql_conn= {your_connection_name}
 snowflake_warehouse= {your_warehouse}
