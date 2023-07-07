@@ -5,11 +5,11 @@ set -e
 ## Variables - change these for you environment ##
 ##################################################
 
-snowsql_conn=bryan
-snowflake_warehouse=VAULTSPEED
-task_schema=TASKER
+snowsql_conn= {your_connection_name}
+snowflake_warehouse= {your_warehouse}
+task_schema= {your_Snowflake_task_schema}
 default_schedule="USING CRON 0 0 1 1 * America/New_York" ## Here, 01 January at midnight is the default when no schedule is available in the FMC definition
-agent_folder=/home/vsstudent/agent
+agent_folder= {your_agent_folder_path} 
 zipname=$1
 
 ## Set file and directory paths
