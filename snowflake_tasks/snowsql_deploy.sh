@@ -41,20 +41,30 @@ snowsql -c $snowsql_conn -o exit_on_error=true -q "TRUNCATE TASKER.TASK_MAPPING;
 ## Insert JSON mapping into task mapping table; use as work table for task generation procedure
 snowsql -c $snowsql_conn -o exit_on_error=true -q "INSERT INTO TASKER.TASK_MAPPING (JSON_MAPPING) SELECT TO_VARIANT(PARSE_JSON('$fmc_json_mapping'));"
 
-## Remove VaultSpeed ASCII header from info JSON
+## Remove the "logo" and "comment" from the info JSON
 fmc_json_text=$(cat $path_to_generated_files/${zipname%%.*}/*FMC_info*.json)
 dv_find_str='"dv_code"':
 pos=$(awk -v a="$fmc_json_text" -v b="$dv_find_str" 'BEGIN{print index(a,b)}')
 fmc_json_text={"${fmc_json_text:$pos+33}"
 
-## Get DAG name and scheduling parameters from info JSON
+## Get DAG name, schedule interval, group tasks setting, and target database type from info JSON
 dag_name=$(echo $fmc_json_text|jq -r '.dag_name')
 schedule_interval=$(echo $fmc_json_text|jq -r '.schedule_interval')
+group_tasks=$(echo $fmc_json_text|jq -r '.group_tasks')
+dv_database_type=$(echo $fmc_json_text|jq -r '.dv_database_type')
 
-##Add a default schedule if no value is available in schedule_interval (required for Snowflake Tasks)
-if [ "$schedule_interval" == "" ] 
+##Check for Grouped tasks
+if [ "$group_tasks" == "true" ] 
 then
-    schedule_interval=$default_schedule
+    echo "Group tasks must be set to 'false' for Snowflake Tasks deployed with generic FMC." >&2
+    exit 1
+fi
+
+##Check target database type
+if [ "$dv_database_type" != "SNOWFLAKE" ] 
+then
+    echo "The data vault database type must be 'Snowflake' for Snowflake Tasks deployed with generic FMC." >&2
+    exit 2
 fi
 
 ## Execute procedure to generate tasks/dag

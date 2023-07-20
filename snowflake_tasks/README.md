@@ -36,7 +36,11 @@ NOTE: This code package does not yet handle Object-specific loading window. You 
 
  - Run the script SF_DAG_DEPLOY_OBJECTS.sql in your target Snowflake database.
 
- - In VaultSpeed, set up a Data Vault with FMC_TYPE = Generic and ETL Generation type = Snowflake SQL. Make sure you have generated all the FMC flows created. Be sure to use a valid schedule interval provided in the Snowflake Tasks documentation. Do not enclose the schedule interval value in double quotes (") or single quotes (').
+ - In VaultSpeed, set up a Data Vault with FMC_TYPE = generic and ETL Generation type = Snowflake SQL.
+ 
+ - Generate the DDL and ETL for your Data Vault and deploy both to the target database.
+ 
+ - Generate the FMC workflows. Be sure to use a valid schedule interval provided in the Snowflake Tasks documentation. Do not enclose the schedule interval value in double quotes (") or single quotes ('). Make sure Group Tasks is toggled off. (VaultSpeed will require a numeric Concurrency value, but it will not impact the workflow.
  
 # Usage
 After completing the prerequisites, go the Automatic Deployment screen in your VaultSpeed subscription. Select the generic FMC generation you wish to deploy and click the up arrow to deploy it. Select the Custom Script option and click deploy.
