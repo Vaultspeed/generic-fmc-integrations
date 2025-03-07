@@ -4,6 +4,7 @@ This repository contains applications which use the VaultSpeed generic FMC to im
 ## Available Integrations
 - dbt Cloud: This integration uses the job scheduling capabilities of dbt Cloud to execute the VaultSpeed jobs
 - Snowflake: This integration uses Snowflake Tasks to execute the VaultSpeed jobs (Coming Soon)
+- Prefect: This integration uses Prefect tasks and flows to execute VaultSpeed jobs with Snowflake Sprocs
 
 ## Contributing
 Want to share your own generic FMC implementation for a specific target platform with the VaultSpeed community? Or do you want to improve or fix one of the existing intergations?
