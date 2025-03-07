@@ -12,29 +12,29 @@ from jinja2 import Environment, FileSystemLoader, Template
 
 _logger = logging.getLogger(__name__)
 
+
 @cache
 def get_proc_template() -> Template:
     loader = FileSystemLoader(os.getcwd())
-    env = Environment(
-        loader = loader
-    )
+    env = Environment(loader=loader)
     proc_template = env.get_template("templates/sf_proc_template.sql")
     return proc_template
 
+
 @cache
 def get_env() -> str:
-    env = os.getenv("FMC_ENVIRONMENT", "TEST") # expect dev or prod
+    env = os.getenv("FMC_ENVIRONMENT", "TEST")  # expect dev or prod
     return env
 
 
 def get_flow() -> dict:
-    with open("example_data/ungrouped_flow.json", 'r') as f:
+    with open("example_data/ungrouped_flow.json", "r") as f:
         data = f.read()
         flow_dict = json.loads(data)
     return flow_dict
 
 
-def sql_executor(sql:str):
+def sql_executor(sql: str):
     # ---- Edit this section based on your needs! -------
     from snowflake.connector import connect
 
@@ -43,20 +43,20 @@ def sql_executor(sql:str):
         "user": os.getenv("SNOWFLAKE_USER"),
         "password": os.getenv("SNOWFLAKE_PASSWORD"),
         "database": os.getenv("SNOWFLAKE_DATABASE"),
-        "schema": os.getenv("SNOWFLAKE_SCHEMA")
+        "schema": os.getenv("SNOWFLAKE_SCHEMA"),
     }
     conn = connect(**conn_params)
-    
+
     with conn.cursor() as cur:
         print(cur.execute(sql).fetchall())
 
-    return 
+    return
 
 
 @dataclass(frozen=True)
 class Task:
-    name: str # map name
-    schema: str # map schema
+    name: str  # map name
+    schema: str  # map schema
     proc_input_parameters: Tuple[str]
 
     def run(self, *prev_task_results):
@@ -66,25 +66,26 @@ class Task:
             _logger.debug(f"Running Task: {self.name}")
             sql = get_proc_template().render(
                 {
-                    "map_name": self.name, 
-                    "map_schema": self.schema, 
-                    "input_parameters": self.proc_input_parameters
+                    "map_name": self.name,
+                    "map_schema": self.schema,
+                    "input_parameters": self.proc_input_parameters,
                 }
             )
             _logger.debug(sql)
-            
+
             # we'll only actually execute against Snowflake if we are not in a test environment
             if get_env() == "TEST":
                 return sql
-            
+
             sql_executor(sql)
 
             return sql
-        return execute(*prev_task_results)
-    
 
-def create_tasks(flow_dict:dict) -> Tuple[Dict[str, Task], Dict[str, Set[str]]]:
-    # we get: 
+        return execute(*prev_task_results)
+
+
+def create_tasks(flow_dict: dict) -> Tuple[Dict[str, Task], Dict[str, Set[str]]]:
+    # we get:
     # name: task object
     # name: task depenency names
 
@@ -92,30 +93,32 @@ def create_tasks(flow_dict:dict) -> Tuple[Dict[str, Task], Dict[str, Set[str]]]:
     task_dependencies = {}
     for key, value in flow_dict.items():
         task = Task(
-            name = key,
-            schema = value['map_schema'],
-            proc_input_parameters = tuple(value['input'])
+            name=key,
+            schema=value["map_schema"],
+            proc_input_parameters=tuple(value["input"]),
         )
         tasks.update({key: task})
-        task_dependencies[key] = set(value.get('dependencies', []))
+        task_dependencies[key] = set(value.get("dependencies", []))
 
     return tasks, task_dependencies
 
 
-def get_degree_zero_tasks(tasks: Dict[str, Task], task_dependencies: Dict[str, Set[str]]) -> List[Task]:
+def get_degree_zero_tasks(
+    tasks: Dict[str, Task], task_dependencies: Dict[str, Set[str]]
+) -> List[Task]:
     # (0 edges)
     no_deps_tasks = []
     for key, value in task_dependencies.items():
         if len(value) == 0:
             no_deps_tasks.append(tasks[key])
-        
+
     return no_deps_tasks
 
 
 def run_flow():
     flow_dict = get_flow()
     tasks, task_dependencies = create_tasks(flow_dict)
-    task_degree_tracker = deepcopy(task_dependencies) # for tracking degree
+    task_degree_tracker = deepcopy(task_dependencies)  # for tracking degree
     task_results = {}  # task: result -> to pull for next task
 
     degree_zero_tasks = get_degree_zero_tasks(tasks, task_dependencies)
@@ -131,7 +134,7 @@ def run_flow():
         for parent in task_dependencies[node.name]:
             if parent in list(task_results.keys()):
                 parent_results.append(task_results[parent])
-        
+
         _logger.info(f"Running Node {node.name} With Parents: \n   {parent_results}")
         task_results[node.name] = node.run(*parent_results)
 
