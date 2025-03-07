@@ -21,12 +21,36 @@ def get_proc_template() -> Template:
     proc_template = env.get_template("templates/sf_proc_template.sql")
     return proc_template
 
+@cache
+def get_env() -> str:
+    env = os.getenv("FMC_ENVIRONMENT", "TEST") # expect dev or prod
+    return env
+
 
 def get_flow() -> dict:
     with open("example_data/ungrouped_flow.json", 'r') as f:
         data = f.read()
         flow_dict = json.loads(data)
     return flow_dict
+
+
+def sql_executor(sql:str):
+    # ---- Edit this section based on your needs! -------
+    from snowflake.connector import connect
+
+    conn_params = {
+        "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+        "user": os.getenv("SNOWFLAKE_USER"),
+        "password": os.getenv("SNOWFLAKE_PASSWORD"),
+        "database": os.getenv("SNOWFLAKE_DATABASE"),
+        "schema": os.getenv("SNOWFLAKE_SCHEMA")
+    }
+    conn = connect(**conn_params)
+    
+    with conn.cursor() as cur:
+        print(cur.execute(sql).fetchall())
+
+    return 
 
 
 @dataclass(frozen=True)
@@ -38,6 +62,7 @@ class Task:
     def run(self, *prev_task_results):
         @task(name=self.name)
         def execute(*prev_task_results):
+            # prev_task_results is needed for prefect to link tasks automatically
             _logger.debug(f"Running Task: {self.name}")
             sql = get_proc_template().render(
                 {
@@ -47,6 +72,13 @@ class Task:
                 }
             )
             _logger.debug(sql)
+            
+            # we'll only actually execute against Snowflake if we are not in a test environment
+            if get_env() == "TEST":
+                return sql
+            
+            sql_executor(sql)
+
             return sql
         return execute(*prev_task_results)
     
@@ -96,9 +128,6 @@ def run_flow():
     while queue:
         node = queue.popleft()
         parent_results = []
-        # for key, value in task_results.items():
-        #     if key.name in task_dependencies[node.name]:
-        #         parent_results.append(value)
         for parent in task_dependencies[node.name]:
             if parent in list(task_results.keys()):
                 parent_results.append(task_results[parent])
@@ -128,17 +157,9 @@ def execute_task_tree():
     return run_flow()
 
 
-
 if __name__ == "__main__":
 
-    env = os.getenv("ENVIRONMENT", "DEV") # expect dev or prod
-    if env == "DEV":
-        _logger.setLevel(logging.DEBUG)
-
-    else: 
-        _logger.setLevel(logging.INFO)
-
-
+    _logger.setLevel(logging.DEBUG)
 
     result = execute_task_tree()
 
