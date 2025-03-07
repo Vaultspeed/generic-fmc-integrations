@@ -1,0 +1,1 @@
+CALL {{ map_schema }}."{{ map_name }}"({% for parameter in input_parameters %}'{{parameter}}'{% if not loop.last %}, {% endif %}{% endfor %});
