@@ -1,1 +1,1 @@
-CALL {{ map_schema }}."{{ map_name }}"({% for parameter in input_parameters %}'{{parameter}}'{% if not loop.last %}, {% endif %}{% endfor %});
+CALL "{{ map_schema }}"."{{ map_name }}"({% for key, value in input_parameters.items() %}'{{value}}'{% if not loop.last %}, {% endif %}{% endfor %});
