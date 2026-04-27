@@ -29,7 +29,7 @@ AS '
 ';
 
 -- 5. Create wrapper stored procedure for running procedures and logging failure if procedure fails
-CREATE OR REPLACE PROCEDURE TASKER.RUN_MAPPING_PROC("PROC_NAME" VARCHAR(255), "LOAD_CYCLE_ID" VARCHAR(16777216))
+CREATE OR REPLACE PROCEDURE TASKER.RUN_MAPPING_PROC("PROC_NAME" VARCHAR(255))
 
 RETURNS VARCHAR(16777216)
 LANGUAGE JAVASCRIPT
@@ -132,7 +132,6 @@ BEGIN
     var_sql := ''CREATE OR REPLACE TASK EXEC_''||UPPER(var_job)||'' WAREHOUSE = ''||var_wh||'' AFTER EXEC_''||UPPER(dag_name)||'' AS 
     BEGIN
         CALL ''||UPPER(proc_schema)||''.''||UPPER(var_job)||''(''''''||dag_name||'''''', TO_VARCHAR(SYSTEM$GET_PREDECESSOR_RETURN_VALUE()), TO_VARCHAR(CURRENT_TIMESTAMP::timestamp));
-        CALL SYSTEM$SET_RETURN_VALUE(SYSTEM$GET_PREDECESSOR_RETURN_VALUE());
     END;'';
     EXECUTE IMMEDIATE var_sql;
     task_counter := task_counter + 1;
@@ -162,17 +161,14 @@ BEGIN
             FOR dep in dep_arr DO
                 dep_counter := dep_counter + 1;
                 dep_list := dep_list||CASE WHEN :dep_counter > 1 THEN '', '' ELSE '''' END||''EXEC_''||UPPER(ARRAY_TO_STRING(dep,'', ''));
-                --Get the last dependency, ensuring only one dependency task is called to fetch the load cycle id.
-                dep_last_task := ''EXEC_''||UPPER(ARRAY_TO_STRING(dep,'', ''));
             END FOR;
 
             -- Build create task statements; the last layer is run without the handling procedure.
             var_sql := CASE WHEN :var_seq = :max_layer THEN  -- last task in DAG; SUCCESS
-                                task_sql||dep_list||'' AS CALL ''||UPPER(proc_schema)||''.''||UPPER(var_proc)||''(TO_VARCHAR(SYSTEM$GET_PREDECESSOR_RETURN_VALUE(''''''||dep_last_task||'''''')), ''''1'''');''
+                                task_sql||dep_list||'' AS CALL ''||UPPER(proc_schema)||''.''||UPPER(var_proc)||''(''''1'''');''
                             ELSE -- all other tasks, run within handling procedure
                                 task_sql||dep_list||'' AS BEGIN 
-                                                            CALL ''||UPPER(task_schema)||''.RUN_MAPPING_PROC(''''''||UPPER(proc_schema)||''.''||UPPER(var_proc)||''()'''', TO_VARCHAR(SYSTEM$GET_PREDECESSOR_RETURN_VALUE(''''''||dep_last_task||''''''))); 
-                                                            CALL SYSTEM$SET_RETURN_VALUE(SYSTEM$GET_PREDECESSOR_RETURN_VALUE(''''''||dep_last_task||'''''')); 
+                                                            CALL ''||UPPER(task_schema)||''.RUN_MAPPING_PROC(''''''||UPPER(proc_schema)||''.''||UPPER(var_proc)||''()'''');
                                                           END;''
                             END;
             EXECUTE IMMEDIATE var_sql;
